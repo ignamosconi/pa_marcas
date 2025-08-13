@@ -114,7 +114,4 @@ export class MarcaController {
   ) {
     return this.marcaService.restaurarMarca(id)
   }
-
-
-
 }
