@@ -66,7 +66,7 @@ export class MarcaController {
       nombre111: 725,
       apellido: "Mosconi"
     }
-  el método va a devolver un error, siempre y cuando las validaciones de ValidationPipe global estén
+  el método va a devolver un error, siempre y cuando las validaciones de Validation global estén
   activadas. En este caso se devolvería un error 400, porque:
     • Los campos "nombre111" y "apellido" no están definidos ni permitidos en createMarcaDto.
     • El dato numérico no es válido para ningún parámetro
