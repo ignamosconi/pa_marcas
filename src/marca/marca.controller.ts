@@ -27,6 +27,14 @@ export class MarcaController {
     return this.marcaService.hola();
   }
 
+
+  //Get que además muestra los soft-deletes
+  @Get('eliminadas')    // ruta: /marca/eliminadas
+  verSoftDeletes(): Promise<Marca[]> {
+    return this.marcaService.verSoftDeletes();
+  }
+
+  //Get que sólo muestra las que NO están soft-deleted
   @Get()                                  //Hacer un get a /marca
   findAll(): Promise<Marca[]> {
     return this.marcaService.findAll();
@@ -88,12 +96,25 @@ export class MarcaController {
     return this.marcaService.actualizarMarca(id, updateMarcaDto)
   }
 
-  //Eliminar marcas
-  @Delete(":id")
-  eliminarMarca(
+  /*
+  ELIMINAR y RESTAURAR
+  */
+
+  //Soft-delete
+  @Delete("/softdel/:id")
+  softDeleteMarca(
     @Param("id", ParseIntPipe) id:number  //Para borrar sólo nos hace falta la ID, no el body.
   ) {
-    return this.marcaService.eliminarMarca(id);
+    return this.marcaService.softDeleteMarca(id);
   }
+
+  @Delete("/res/:id")
+  restaurarMarca(
+      @Param("id", ParseIntPipe) id:number
+  ) {
+    return this.marcaService.restaurarMarca(id)
+  }
+
+
 
 }

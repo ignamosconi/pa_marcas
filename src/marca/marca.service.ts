@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';   //Aprovechamos para importar el logger
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';   //Aprovechamos para importar el logger
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Marca } from './marca.entity';
@@ -81,15 +81,45 @@ export class MarcaService {
   }
 
   /*
-  ELIMINAR
+  ELIMINAR & ASOCIADOS
   */
-  async eliminarMarca(id:number) {
+  //Soft-delete
+  async softDeleteMarca(id:number) {
     //Buscamos si la id existe
     const marcaOriginal = await this.findOne(id);     //await: tenemos que esperar que se resuelva findOne()
     const nombre = marcaOriginal.nombre
-    //Si existe, la eliminamos. 
-    await this.marcaRepository.remove(marcaOriginal)
-    this.logger.log(`Marca ${nombre} eliminada correctamente.`)
-    return { message: `Marca ${nombre} eliminada correctamente` };
+    //Si existe, la "escondemos". 
+    await this.marcaRepository.softRemove(marcaOriginal)
+    this.logger.log(`Marca ${nombre} eliminada permanentemente.`)
+    return { message: `Marca ${nombre} eliminada permanentemente.` };
+  }
+
+  //Ver los soft deletes y los que siguen activos
+  async verSoftDeletes(): Promise<Marca[]> {
+    this.logger.log("Buscando las marcas soft-deleted...");
+    return await this.marcaRepository.find({ withDeleted: true });
+  }
+
+  //Recuperar un soft delete
+  async restaurarMarca(id: number) {
+    // Buscar todas las marcas, eliminadas o no.
+    const marca = await this.marcaRepository.findOne({
+      where: { id },
+      withDeleted: true,
+    });
+
+    if (!marca) {
+      this.logger.log(`No existe una marca con ID ${id}`)
+      throw new NotFoundException(`No existe una marca con ID ${id}`);
+    }
+
+    if (!marca.deletedAt) {
+      this.logger.log(`La marca con ID ${id} no está eliminada.`)
+      throw new BadRequestException(`La marca con ID ${id} no está eliminada.`);
+    }
+
+    await this.marcaRepository.restore(id);
+    this.logger.log(`Marca ${marca.nombre} restaurada correctamente.`)
+    return { message: `Marca ${marca.nombre} restaurada correctamente.` };
   }
 }

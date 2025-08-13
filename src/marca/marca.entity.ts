@@ -1,5 +1,5 @@
 import { IsOptional } from 'class-validator';
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, DeleteDateColumn} from 'typeorm';
 
 @Entity()
 export class Marca {
@@ -12,4 +12,8 @@ export class Marca {
   @IsOptional()
   @Column({ nullable: true })   //Como pusimos el @IsOptional(), existe la posibilidad que sea null.
   descripcion: string;
+
+  @IsOptional()
+  @DeleteDateColumn()
+  deletedAt: Date;
 }
