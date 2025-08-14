@@ -1,8 +1,9 @@
 import { Controller, Post, Body, Patch, Param, ParseIntPipe, Get, Delete } from '@nestjs/common';
 import { MarcaService } from './marca.service'; 
-import { Marca } from './marca.entity';
 import { CreateMarcaDto } from './dto/create-marca.dto';
 import { UpdateMarcaDto } from './dto/update-marca.dto';
+import { MostrarNombreMarcaDto } from './dto/mostrar-nombre-marca.dto';
+import { MostrarMarcaCompletaDto } from './dto/mostrar-marca-completa.dto';
 
 @Controller('marca') // Este controlador maneja las rutas /marca
 export class MarcaController {
@@ -28,22 +29,22 @@ export class MarcaController {
   }
 
 
-  //Get que además muestra los soft-deletes
+  //Get que muestra todas las marcas, soft-deleted o no.
   @Get('eliminadas')    // ruta: /marca/eliminadas
-  verSoftDeletes(): Promise<Marca[]> {
+  verSoftDeletes(): Promise<MostrarNombreMarcaDto[]> {
     return this.marcaService.verSoftDeletes();
   }
 
-  //Get que sólo muestra las que NO están soft-deleted
+  //Get que sólo muestra solo las marcas que NO están eliminadas.
   @Get()                                  //Hacer un get a /marca
-  findAll(): Promise<Marca[]> {
+  findAll(): Promise<MostrarMarcaCompletaDto[]> {
     return this.marcaService.findAll();
   } 
 
   @Get(":id")                             //Hacer un get a /marca/35, por ejemplo.
   findOne(
     @Param("id", ParseIntPipe) id:number,
-  ): Promise<Marca> {
+  ): Promise<MostrarMarcaCompletaDto> {
     return this.marcaService.findOne(id);
   } 
 
@@ -77,7 +78,7 @@ export class MarcaController {
   @Post()
   crearMarca(
     @Body() createMarcaDto: CreateMarcaDto  //Explicación Body en el comentario de arriba.
-  ): Promise<Marca> {                       //Devolvemos la marca creada, para chequear.
+  ): Promise<MostrarMarcaCompletaDto> {                       //Devolvemos la marca creada, para chequear.
     return this.marcaService.crearMarca(createMarcaDto)
   }
 
@@ -92,7 +93,7 @@ export class MarcaController {
   actualizarMarca (
     @Param("id", ParseIntPipe) id:number,
     @Body() updateMarcaDto: UpdateMarcaDto 
-  ): Promise<Marca> {
+  ): Promise<MostrarMarcaCompletaDto> {
     return this.marcaService.actualizarMarca(id, updateMarcaDto)
   }
 

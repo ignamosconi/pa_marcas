@@ -4,46 +4,70 @@ import { ValidationPipe } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 
+//Formato uniforme de timestamp para todos los logs (con control de tipos)
+const timestampFormat = winston.format((info) => {
+  const rawTimestamp = info.timestamp;
+
+  const date =
+    typeof rawTimestamp === 'string' ||
+    typeof rawTimestamp === 'number' ||
+    rawTimestamp instanceof Date
+      ? new Date(rawTimestamp)
+      : new Date();
+
+  info.timestamp = date.toLocaleString('es-AR', {
+    hour12: false,
+  });
+
+  return info;
+});
+
 async function bootstrap() {
   const app = await NestFactory.create(MarcaModule, {
     logger: WinstonModule.createLogger({
       transports: [
-        // Formato legible en consola (estilo NestJS clásico)
+        // 🖥 Consola con formato legible
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.colorize(),
             winston.format.timestamp(),
+            timestampFormat(),
             winston.format.printf(({ context, level, timestamp, message }) => {
-              const localTime = new Date(timestamp as string).toLocaleString('es-AR', {hour12: false,});
-              return `${localTime} [${context}] ${level}: ${message}`;
+              return `${timestamp} [${context ?? 'App'}] ${level}: ${message}`;
             }),
           ),
         }),
 
-        // Logs en archivo de texto (informativos)
+        // Archivo de logs (logs comunes y errores)
         new winston.transports.File({
           filename: 'logs/app.log',
           level: 'info',
           format: winston.format.combine(
             winston.format.timestamp(),
-            winston.format.json()
+            timestampFormat(),
+            winston.format.printf(({ context, level, timestamp, message }) => {
+              return `${timestamp} [${context ?? 'App'}] ${level}: ${message}`;
+            }),
           ),
         }),
 
-        // Logs en archivo de errores
+        // Archivo de logs, sólo para errores
         new winston.transports.File({
           filename: 'logs/error.log',
           level: 'error',
           format: winston.format.combine(
             winston.format.timestamp(),
-            winston.format.json()
+            timestampFormat(),
+            winston.format.printf(({ context, level, timestamp, message }) => {
+              return `${timestamp} [${context ?? 'App'}] ${level}: ${message}`;
+            }),
           ),
         }),
       ],
     }),
   });
 
-  // Validaciones de DTOs. Ver comentario en el @Post (creación de marcas)
+  // 🛡Validaciones globales para DTOs
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
