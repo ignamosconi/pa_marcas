@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Marca } from './marca.entity';
 import { MarcaController } from './marca.controller';
 import { MarcaService } from './marca.service';
+import { MarcaRepository } from './repositories/marca.repository';
 
 @Module({
   imports: [
@@ -19,6 +20,12 @@ import { MarcaService } from './marca.service';
     TypeOrmModule.forFeature([Marca]),
   ],
   controllers: [MarcaController],
-  providers: [MarcaService]
+  providers: [
+    MarcaService,
+    {
+      provide: 'IMarcaRepository',  // Archivo <repositories/marca.repository.interface.ts>
+      useClass: MarcaRepository     // Archivo <repositories/marca.repository.ts>
+    }, 
+  ]
 })
 export class MarcaModule {}

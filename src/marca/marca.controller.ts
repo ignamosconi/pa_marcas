@@ -5,6 +5,25 @@ import { UpdateMarcaDto } from './dto/update-marca.dto';
 import { MostrarNombreMarcaDto } from './dto/mostrar-nombre-marca.dto';
 import { MostrarMarcaCompletaDto } from './dto/mostrar-marca-completa.dto';
 
+/*
+ARQUITECTURA MVC. Somos una lasagna (ñam)
+
+VISTA - Interacción con usuario - [ Controller ]      → Recibe la petición HTTP. Es bobo, entonces delega al service.
+      ↓
+CONTROLADOR - [ MarcaService ]    → Trabaja todo lo que tiene que hacer, pero delega la BD al repository
+      ↓ 
+MODELO - [ IMarcaRepository (interfaz) ] → El repository se define a través de una interfaz, que contiene todos los métodos que el controller / service pueden llegar a usar.
+      ↓
+MODELO [ MarcaRepository (TypeORM + PostgreSQL) ]  → Finalmente es nuestro respository el que se conecta a la base de datos PostgreSQL, a través de TypeORM. 
+
+(!) IMPORTANTE: Ya no es el service el que utiliza TypeORM para conectarse a la BD, sino que el éste
+delega a un Repository.
+
+(!!) El "Modelo" incluye el repository, su interfaz y la entidad (marca, en este caso).
+*/
+
+
+
 @Controller('marca') // Este controlador maneja las rutas /marca
 export class MarcaController {
 
@@ -23,12 +42,7 @@ export class MarcaController {
 
   
   //Consultas
-  @Get('/hola')     //Si hacés un get a /marca/hola, se ejecuta la función getHello()
-  hola(): string {
-    return this.marcaService.hola();
-  }
-
-
+  
   //Get que muestra todas las marcas, soft-deleted o no.
   @Get('eliminadas')    // ruta: /marca/eliminadas
   verSoftDeletes(): Promise<MostrarNombreMarcaDto[]> {

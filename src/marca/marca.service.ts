@@ -1,12 +1,12 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';   //Aprovechamos para importar el logger
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';   //Aprovechamos para importar el logger
+import { IsNull, Not, } from 'typeorm';
 import { Marca } from './marca.entity';
 import { CreateMarcaDto } from './dto/create-marca.dto';
 import { UpdateMarcaDto } from './dto/update-marca.dto';
 import { MostrarNombreMarcaDto } from './dto/mostrar-nombre-marca.dto';
 import { MostrarMarcaCompletaDto } from './dto/mostrar-marca-completa.dto';
 import { plainToInstance } from 'class-transformer';
+import type { IMarcaRepository } from './repositories/marca.repository.interface';
 
 
 @Injectable()
@@ -20,31 +20,26 @@ export class MarcaService {
 
   /*
   CONSTRUCTOR
-  A través de TypeORM, injectamos el repositorio de Marca que creamos con PSQL (cuya conexión
-  definimos en el archivo marca.module.ts).
-
-  A través de marcaRepository, podremos acceder a múltiples métodos:
-    • find  • findOne   • save    • delete
+  Inyectamos marca.respository.ts; que va a ser quien se conecta con TypeORM
+  
+  Indicamos 'IMarcaRepository' porque en marca.module.ts definimos que IMarcaRepository utiliza la 
+  clase MarcaRepository, que es donde terminamos accediendo con TypeORM.
   */
   constructor(
-    @InjectRepository(Marca)
-    private readonly marcaRepository: Repository<Marca>,
+    @Inject('IMarcaRepository')
+    private readonly marcaRepository: IMarcaRepository,
   ) {}
 
 
   /*
   CONSULTAS
   */
-  hola(): string {
-    return "Hi mum!"
-  }
-
   //Es async porque tenemos que esperar la consulta a la BD, y esto se hará en paralelo.
   async findAll(): Promise<MostrarMarcaCompletaDto[]> {
     this.logger.log("Buscando todas las marcas...");
-    const marcas = await this.marcaRepository.find({
-      where: { deletedAt: IsNull() },
-    });
+
+    //El service NO se conecta a la BD!! Delegamos al repository!!!! 
+    const marcas = await this.marcaRepository.findAll()
 
     //Si devolvemos directamente el find, estamos devolviendo la entidad. Hacemos un transform
     //para usar los DTO que definimos.
@@ -56,7 +51,7 @@ export class MarcaService {
   
   async findOne(id: number): Promise<MostrarMarcaCompletaDto> {
     this.logger.log(`Buscando la marca ID:${id}`)
-    const marca = await this.marcaRepository.findOne({ where: { id } });
+    const marca = await this.marcaRepository.findOne(id);
     if (!marca) {
       this.logger.error(`No se encontró la marca con ID ${id}`)   //Usamos .error en lugar de .log
       throw new NotFoundException(`No se encontró la marca con ID ${id}`);
@@ -72,10 +67,7 @@ export class MarcaService {
   //Ver los soft deletes y los que siguen activos
   async verSoftDeletes(): Promise<MostrarNombreMarcaDto[]> {
     this.logger.log("Buscando las marcas soft-deleted...");
-    const marcas = await this.marcaRepository.find({
-      withDeleted: true, //´TypeORM por defecto oculta los soft-deleted, con esto los mostramos.
-      where: { deletedAt: Not(IsNull()) },    //Escondemos los que no fueron eliminados.
-    });
+    const marcas = await this.marcaRepository.findSoftDeleted()
 
     return plainToInstance(MostrarNombreMarcaDto, marcas, {
       excludeExtraneousValues: true,
@@ -96,7 +88,7 @@ export class MarcaService {
   */
   async crearMarca(createMarcaDto: CreateMarcaDto): Promise<MostrarMarcaCompletaDto> {
     this.logger.log(`Creando marca: ${createMarcaDto.nombre}`); //Lo anunciamos por consola.
-    const marcaCreada = this.marcaRepository.save(createMarcaDto)
+    const marcaCreada = this.marcaRepository.create(createMarcaDto)
 
     return plainToInstance(MostrarMarcaCompletaDto, marcaCreada, {excludeExtraneousValues: true})
   }
@@ -105,15 +97,10 @@ export class MarcaService {
   ACTUALIZAR
   */
   async actualizarMarca(id:number, updateMarcaDto: UpdateMarcaDto): Promise<MostrarMarcaCompletaDto> {
-    //Buscamos la marca que tenemos que actualizar
-    const marcaOriginal = await this.findOne(id)
-    
-    //Reemplazamos la marca anterior con la actualizada
-    const marcaActualizada = Object.assign(marcaOriginal, updateMarcaDto);
-    this.logger.log(`Marca actualizada: ID ${id}, nuevo nombre: ${marcaActualizada.nombre}, nueva descripción: ${marcaActualizada.descripcion}`);
-    const marcaNueva = this.marcaRepository.save(marcaActualizada)  //No hace falta el await, porque es lo último que hacemos.
+    const marcaActualizada = this.marcaRepository.update(id, updateMarcaDto)  //No hace falta el await, porque es lo último que hacemos.
+    this.logger.log(`Marca actualizada: ID ${id}, nuevo nombre: ${(await marcaActualizada).nombre}, nueva descripción: ${(await marcaActualizada).descripcion}`);
 
-    return plainToInstance(MostrarMarcaCompletaDto, marcaNueva, {excludeExtraneousValues: true})
+    return plainToInstance(MostrarMarcaCompletaDto, marcaActualizada, {excludeExtraneousValues: true})
   }
 
   /*
@@ -121,23 +108,25 @@ export class MarcaService {
   */
   //Soft-delete
   async softDeleteMarca(id:number) {
-    //Buscamos si la id existe
-    const marcaOriginal = await this.findOne(id);     //await: tenemos que esperar que se resuelva findOne()
-    const nombre = marcaOriginal.nombre
+    //Buscamos si la id existe.
+    const marcaOriginal = await this.marcaRepository.findOne(id);
+
+    if (!marcaOriginal) {
+    this.logger.warn(`No se encontró la marca con ID ${id} para eliminar.`);
+    throw new NotFoundException(`No se encontró la marca con ID ${id}.`);
+    }
+    
     //Si existe, la "escondemos". 
-    await this.marcaRepository.softRemove(marcaOriginal)
-    this.logger.log(`Marca ${nombre} eliminada permanentemente.`)
-    return { message: `Marca ${nombre} eliminada permanentemente.` };
-  }
+    await this.marcaRepository.softDelete(id)
+    this.logger.log(`Marca ${marcaOriginal.nombre} eliminada permanentemente.`)
+    return { message: `Marca ${marcaOriginal.nombre} eliminada permanentemente.` };
+    }
 
 
   //Recuperar un soft delete
   async restaurarMarca(id: number) {
     // Buscar todas las marcas, eliminadas o no.
-    const marca = await this.marcaRepository.findOne({
-      where: { id },
-      withDeleted: true,
-    });
+    const marca = await this.marcaRepository.findOneWithDeleted(id)
 
     if (!marca) {
       this.logger.log(`No existe una marca con ID ${id}`)
