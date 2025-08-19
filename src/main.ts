@@ -1,8 +1,11 @@
+//ARCHIVO: main.ts
+
 import { NestFactory } from '@nestjs/core';
 import { MarcaModule } from './marca/marca.module';
 import { ValidationPipe } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 //Formato uniforme de timestamp para todos los logs (con control de tipos)
 const timestampFormat = winston.format((info) => {
@@ -26,7 +29,7 @@ async function bootstrap() {
   const app = await NestFactory.create(MarcaModule, {
     logger: WinstonModule.createLogger({
       transports: [
-        // 🖥 Consola con formato legible
+        // Consola con formato legible
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.colorize(),
@@ -67,11 +70,22 @@ async function bootstrap() {
     }),
   });
 
-  // 🛡Validaciones globales para DTOs
+  //SWAGGER: Documentación interactiva. Podemos ir a /api para probar los endpoints.
+  const config = new DocumentBuilder()
+    .setTitle('Mi API')
+    .setDescription('Documentación de la API')
+    .setVersion('1.0')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+
+  // Validaciones globales para DTOs
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
+      transform: true,            //Esto permite que funcione @Type( () => Number) en paginacion-marca.dto.ts
     }),
   );
 

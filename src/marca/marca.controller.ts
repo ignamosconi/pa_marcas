@@ -1,20 +1,25 @@
-import { Controller, Post, Body, Patch, Param, ParseIntPipe, Get, Delete } from '@nestjs/common';
+//ARCHIVO: marca.controller.ts
+
+import { Controller, Post, Body, Patch, Param, ParseIntPipe, Get, Delete, Query } from '@nestjs/common';
 import { MarcaService } from './marca.service'; 
 import { CreateMarcaDto } from './dto/create-marca.dto';
 import { UpdateMarcaDto } from './dto/update-marca.dto';
 import { MostrarNombreMarcaDto } from './dto/mostrar-nombre-marca.dto';
 import { MostrarMarcaCompletaDto } from './dto/mostrar-marca-completa.dto';
+import { PaginacionMarcaDto } from './dto/paginacion-marca.dto';
 
 /*
-ARQUITECTURA MVC. Somos una lasagna (ñam)
+ARQUITECTURA POR CAPAS. Somos una lasagna (ñam)
 
-VISTA - Interacción con usuario - [ Controller ]      → Recibe la petición HTTP. Es bobo, entonces delega al service.
+[ Controller ]: Recibe la petición HTTP. Es bobo, entonces delega al service.
       ↓
-CONTROLADOR - [ MarcaService ]    → Trabaja todo lo que tiene que hacer, pero delega la BD al repository
+[ MarcaService ]: Trabaja todo lo que tiene que hacer, pero delega la BD al repository
       ↓ 
-MODELO - [ IMarcaRepository (interfaz) ] → El repository se define a través de una interfaz, que contiene todos los métodos que el controller / service pueden llegar a usar.
+[ IMarcaRepository (interfaz) ]: El repository se define a través de una interfaz, que contiene todos los métodos que el controller / service pueden llegar a usar.
       ↓
-MODELO [ MarcaRepository (TypeORM + PostgreSQL) ]  → Finalmente es nuestro respository el que se conecta a la base de datos PostgreSQL, a través de TypeORM. 
+[ MarcaRepository (TypeORM + PostgreSQL) ]: Finalmente es nuestro respository el que se conecta a la base de datos PostgreSQL, a través de TypeORM. 
+
+
 
 (!) IMPORTANTE: Ya no es el service el que utiliza TypeORM para conectarse a la BD, sino que el éste
 delega a un Repository.
@@ -55,12 +60,24 @@ export class MarcaController {
     return this.marcaService.findAll();
   } 
 
+  // En la práctica no devolvemos todos los elementos, devolvemos páginas.
+  //Esta query tiene el formato: 
+  //                /marca/pag?pag=2&mostrar=5
+  // El "?" indica que empiezan los @Query(), entonces sabemos que page es 2 y limit es 5.
+  @Get('pag')
+  async findPag(@Query() paginacion: PaginacionMarcaDto) {
+    return this.marcaService.findPag(paginacion);
+  }
+
   @Get(":id")                             //Hacer un get a /marca/35, por ejemplo.
   findOne(
     @Param("id", ParseIntPipe) id:number,
   ): Promise<MostrarMarcaCompletaDto> {
     return this.marcaService.findOne(id);
   } 
+
+
+  
 
 
   /*

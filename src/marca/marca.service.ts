@@ -1,12 +1,13 @@
+//ARCHIVO: marca.service.ts
+
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';   //Aprovechamos para importar el logger
-import { IsNull, Not, } from 'typeorm';
-import { Marca } from './marca.entity';
 import { CreateMarcaDto } from './dto/create-marca.dto';
 import { UpdateMarcaDto } from './dto/update-marca.dto';
 import { MostrarNombreMarcaDto } from './dto/mostrar-nombre-marca.dto';
 import { MostrarMarcaCompletaDto } from './dto/mostrar-marca-completa.dto';
 import { plainToInstance } from 'class-transformer';
 import type { IMarcaRepository } from './repositories/marca.repository.interface';
+import { PaginacionMarcaDto } from './dto/paginacion-marca.dto';
 
 
 @Injectable()
@@ -63,6 +64,27 @@ export class MarcaService {
       excludeExtraneousValues: true,
     });
   }
+
+  async findPag(paginacion: PaginacionMarcaDto) {
+    const pag = paginacion.pag
+    const mostrar = paginacion.mostrar
+    this.logger.log(`Buscando marcas paginadas: Página N° ${pag}, mostrando ${mostrar} ítems`);
+
+    
+
+    //Recordemos que findPaginado nos devuelve [array de página, n° de elementos en total]
+    const [marcas, total] = await this.marcaRepository.findPag(pag, mostrar);
+
+    return {
+      total,
+      pag,
+      mostrar,
+      data: plainToInstance(MostrarMarcaCompletaDto, marcas, {
+        excludeExtraneousValues: true,
+      }),
+    };
+  }
+
 
   //Ver los soft deletes y los que siguen activos
   async verSoftDeletes(): Promise<MostrarNombreMarcaDto[]> {

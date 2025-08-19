@@ -1,3 +1,5 @@
+//ARCHIVO: marca.respository.ts
+
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, Not } from 'typeorm';
@@ -30,6 +32,18 @@ export class MarcaRepository implements IMarcaRepository {
   async findOne(id: number): Promise<Marca | null> {
     return this.repo.findOne({ where: { id } });
   }
+
+  async findPag(pag: number, mostrar: number): Promise<[Marca[], number]> {
+    const skip = (pag - 1) * mostrar;
+
+    return this.repo.findAndCount({
+      where: { deletedAt: IsNull() },
+      skip,
+      take: mostrar,                    //Esto nos devuelve el siguiente vector:
+      order: { id: 'ASC' },             //[elementos de la página, cantidad total de resultados (sin paginar)]
+    });                                 //Por eso la promesa es Marca[], number.
+  }
+
 
   async findSoftDeleted(): Promise<Marca[]> {
     return this.repo.find({
