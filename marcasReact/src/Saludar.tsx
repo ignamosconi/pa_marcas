@@ -3,7 +3,10 @@ function Saludar() {
 
     return (
         //HTML
-        <h1> Mi nombre es {usuario} </h1>
+        <div>
+            <h1> Hello </h1>
+            <h1> Mi nombre es {usuario} </h1>
+        </div>
     )
 }
 
