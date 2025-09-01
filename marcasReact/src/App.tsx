@@ -7,10 +7,17 @@ import MyList2 from './ejemploBasic/myList2'
 
 import ComponenteEventos1 from './ejemploClases/ComponenteEventos1'
 import ComponenteEventos2 from './ejemploClases/ComponenteEventos2'
+
 import State1 from './ejemploUseState/State1'
 import State1_1 from './ejemploUseState/State1.1';
 import State2 from './ejemploUseState/State2';
 import Marca from './ejemploUseState/Marca';
+
+import SinUseEffect from './ejemploUseEffect/sinUseEffect';
+import UseEffect1 from './ejemploUseEffect/useEffect1_sinDependencias';
+import UseEffect1_1 from './ejemploUseEffect/useEffect1.1_arrayVacío';
+import UseEffect2 from './ejemploUseEffect/useEffect2';
+import UseEffect3 from './ejemploUseEffect/useEffect3';
 
 
 function App() {
@@ -56,7 +63,12 @@ function App() {
       <div>
         <h1>Carpeta "useEffect"</h1>
         <p> <b> Hooks de React - useEffect: </b> https://github.com/Programacion-Avanzada-UTN-FRVM/example-react-effect </p>
-      
+        
+        <SinUseEffect/>
+        <UseEffect1/>
+        <UseEffect1_1/>
+        <UseEffect2/>
+        <UseEffect3/>
       
       </div>
 

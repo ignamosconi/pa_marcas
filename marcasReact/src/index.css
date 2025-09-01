@@ -20,6 +20,15 @@ h1 {
   text-align: left; /* fuerza que no se centre */
 }
 
+h2 {
+  font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+  font-size: 2.1rem;
+  margin-bottom: 1rem;
+  color: #0168d0;
+  text-align: left; /* fuerza que no se centre */
+}
+
+
 p {
   font-size: 1.3rem;
   margin-bottom: 1rem;
