@@ -1,6 +1,6 @@
 //ARCHIVO: marca.respository.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, Not } from 'typeorm';
 import { Marca } from '../marca.entity';
@@ -24,58 +24,107 @@ export class MarcaRepository implements IMarcaRepository {
   ) {}
 
   async findAll(): Promise<Marca[]> {
-    return this.repo.find({
+    try {
+      return this.repo.find({
       where: { deletedAt: IsNull() },
     });
+    } catch (error) {
+      throw new InternalServerErrorException('Error al buscar todas las marcas. Error:' + error);
+    }
+    
   }
 
   async findOne(id: number): Promise<Marca | null> {
-    return this.repo.findOne({ where: { id } });
+    try {
+      return this.repo.findOne({ where: { id } });
+    } catch (error) {
+      throw new InternalServerErrorException(`Error al buscar la marca con ID ${id}. Error:` + error);
+    }
   }
 
   async findPag(pag: number, mostrar: number): Promise<[Marca[], number]> {
-    const skip = (pag - 1) * mostrar;
+    const skip = (pag - 1) * mostrar;   // No nos interesa atrapar errores de esta cte, sino del ORM.
 
-    return this.repo.findAndCount({
+    try {
+      return this.repo.findAndCount({
       where: { deletedAt: IsNull() },
       skip,
       take: mostrar,                    //Esto nos devuelve el siguiente vector:
       order: { id: 'ASC' },             //[elementos de la página, cantidad total de resultados (sin paginar)]
     });                                 //Por eso la promesa es Marca[], number.
+
+    } catch (error) {
+      throw new InternalServerErrorException(`Error al paginar las marcas. Error:` + error);
+    }
   }
 
 
   async findSoftDeleted(): Promise<Marca[]> {
-    return this.repo.find({
+    try {
+      return this.repo.find({
       withDeleted: true,
       where: { deletedAt: Not(IsNull()) },
     });
+    } catch (error) {
+      throw new InternalServerErrorException('Error al buscar marcas eliminadas. Error:' + error);
+    }
   }
 
   async create(createMarcaDto: CreateMarcaDto): Promise<Marca> {
-    const nueva = this.repo.create(createMarcaDto);
-    return this.repo.save(nueva);
+    try {
+      const nueva = this.repo.create(createMarcaDto);
+      return this.repo.save(nueva);
+    } catch (error) {
+      throw new InternalServerErrorException('Error al crear la marca. Error:' + error)
+    }
+    
   }
 
   async update(id: number, updateMarcaDto: UpdateMarcaDto): Promise<Marca> {
-    const marca = await this.findOne(id);
-    if (!marca) throw new Error('Marca no encontrada');
-
-    const actualizada = Object.assign(marca, updateMarcaDto);
-    return this.repo.save(actualizada);
+    try {
+      const marca = await this.findOne(id);
+      if (!marca) {
+        throw new NotFoundException('Marca no encontrada');
+      }
+      const actualizada = Object.assign(marca, updateMarcaDto);
+      return this.repo.save(actualizada);
+      
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(`Error al actualizar la marca con ID ${id}. Error:` + error);
+    }
   }
 
   async softDelete(id: number): Promise<void> {
-    const marca = await this.findOne(id);      //await: tenemos que esperar que se resuelva findOne()
-    if (!marca) throw new Error('Marca no encontrada');
-    await this.repo.softRemove(marca);
+    try {
+      const marca = await this.findOne(id);      //await: tenemos que esperar que se resuelva findOne()
+      if (!marca) {
+        throw new NotFoundException('Marca no encontrada');
+      }
+      await this.repo.softRemove(marca);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(`Error al eliminar (soft-delete) la marca con ID ${id}. Error:` + error);
+    }
   }
 
   async restore(id: number): Promise<void> {
-    await this.repo.restore(id);
+    try {
+      await this.repo.restore(id);
+    } catch (error) {
+      throw new InternalServerErrorException(`Error al restaurar la marca con ID ${id}. Error: ` + error);
+    }
   }
 
   async findOneWithDeleted(id: number): Promise<Marca | null> {
-    return this.repo.findOne({ where: { id }, withDeleted: true });
+    try {
+      return this.repo.findOne({ where: { id }, withDeleted: true });
+    } catch (error) {
+      throw new InternalServerErrorException(`Error al buscar (incluyendo eliminadas) la marca con ID ${id}. Error: ` + error);
+    }
   }
 }
