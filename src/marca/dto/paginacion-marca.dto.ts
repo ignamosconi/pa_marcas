@@ -1,5 +1,4 @@
 // ARCHIVO: paginacion-marca.dto.ts
-import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer'; // Importa 'Type'
 import { IsOptional, IsInt, Min } from 'class-validator';
 

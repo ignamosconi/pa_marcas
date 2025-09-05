@@ -109,16 +109,37 @@ export class MarcaService {
   front no necesita eso. Armamos un DTO acorde a lo que queremos mostrar. 
   */
   async crearMarca(createMarcaDto: CreateMarcaDto): Promise<MostrarMarcaCompletaDto> {
-    this.logger.log(`Creando marca: ${createMarcaDto.nombre}`); //Lo anunciamos por consola.
-    const marcaCreada = this.marcaRepository.create(createMarcaDto)
+    this.logger.log(`Creando marca: ${createMarcaDto.nombre}`);
 
-    return plainToInstance(MostrarMarcaCompletaDto, marcaCreada, {excludeExtraneousValues: true})
+    //Si la marca ya existe, no la creamos. El código después de la Exception NO se ejecuta.
+    const existente = await this.marcaRepository.findByNombreInsensitive(createMarcaDto.nombre);
+    if (existente) {
+      throw new BadRequestException(`Ya existe una marca con el nombre ${createMarcaDto.nombre} (case insensitive).`);
+    }
+
+    const marcaCreada = await this.marcaRepository.create(createMarcaDto);
+
+    return plainToInstance(MostrarMarcaCompletaDto, marcaCreada, { excludeExtraneousValues: true });
   }
+
+  
 
   /*
   ACTUALIZAR
   */
   async actualizarMarca(id:number, updateMarcaDto: UpdateMarcaDto): Promise<MostrarMarcaCompletaDto> {
+    
+    //Si en efecto están actualizando el nombre, chequeamos que no se repita. dto.nombre puede ser
+    //undefined, asique en ese caso no haríamos este chequeo.
+    if (updateMarcaDto.nombre) {
+      const marcaExistente = await this.marcaRepository.findByNombreInsensitive(updateMarcaDto.nombre);
+      
+      //Podemos encontrar el nombre repetido si somos nosotros mismos (misma id), este caso sería ok.
+      if (marcaExistente && marcaExistente.id !== id) {
+        throw new BadRequestException(`Ya existe una marca con el nombre ${updateMarcaDto.nombre} (case insensitive).`);
+        }
+    }
+    
     const marcaActualizada = this.marcaRepository.update(id, updateMarcaDto)  //No hace falta el await, porque es lo último que hacemos.
     this.logger.log(`Marca actualizada: ID ${id}, nuevo nombre: ${(await marcaActualizada).nombre}, nueva descripción: ${(await marcaActualizada).descripcion}`);
 

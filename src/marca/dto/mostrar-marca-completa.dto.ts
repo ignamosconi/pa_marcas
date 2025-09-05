@@ -1,3 +1,5 @@
+//mostrar-marca-completa.dto.ts
+
 //No usamos class validators porque este DTO es de salida.
 
 //Sí usamos class-transformer. El decorador @Expose() indica que esos atributos deben mostrarse cuando

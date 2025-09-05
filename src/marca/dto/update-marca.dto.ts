@@ -1,3 +1,4 @@
+//update-marca.dto.ts
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateMarcaDto } from './create-marca.dto';
 

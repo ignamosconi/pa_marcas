@@ -9,8 +9,8 @@ export interface IMarcaRepository {
                                         //Después en SERVICE: findAll(): Promise<MostrarMarcaCompletaDto[]> {
   findOne(id: number): Promise<Marca | null>;
   findPag(pag: number, mostrar: number): Promise<[Marca[], number]>
-
   findSoftDeleted(): Promise<Marca[]>;
+  findByNombreInsensitive(nombre: string): Promise<Marca | null>;
 
   create(createMarcaDto: CreateMarcaDto): Promise<Marca>;
 

@@ -70,6 +70,20 @@ export class MarcaRepository implements IMarcaRepository {
     }
   }
 
+  //Usaremos este nombre para evitar repetidos. 
+  async findByNombreInsensitive(nombre: string): Promise<Marca | null> {
+  try {
+    return this.repo
+      .createQueryBuilder('marca')
+      .where('LOWER(marca.nombre) = LOWER(:nombre)', { nombre })
+      .withDeleted() // Opcional, depende si querés incluir soft deletes
+      .getOne();
+  } catch (error) {
+    throw new InternalServerErrorException(`Error al buscar marca por nombre. Error: ${error}`);
+  }
+}
+
+
   async create(createMarcaDto: CreateMarcaDto): Promise<Marca> {
     try {
       const nueva = this.repo.create(createMarcaDto);

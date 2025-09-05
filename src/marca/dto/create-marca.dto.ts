@@ -1,3 +1,4 @@
+//create-marca.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 
