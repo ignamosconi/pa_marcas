@@ -1,6 +1,6 @@
 # ⚠️ ¡Este repositorio ya no es válido!
 
-> El desarrollo de este proyecto ha sido migrado.  
+> El desarrollo de "pa_marcas" se migró a "pa_marcas2"  
 > La nueva dirección es: 👉 [https://github.com/ignamosconi/pa_marcas2](https://github.com/ignamosconi/pa_marcas2)
 
 ---
