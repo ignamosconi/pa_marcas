@@ -1,3 +1,11 @@
+# ⚠️ ¡Este repositorio ya no es válido!
+
+> El desarrollo de este proyecto ha sido migrado.  
+> La nueva dirección es: 👉 [https://github.com/ignamosconi/pa_marcas2](https://github.com/ignamosconi/pa_marcas2)
+
+---
+
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
