@@ -8,6 +8,7 @@ import { MostrarMarcaCompletaDto } from './dto/mostrar-marca-completa.dto';
 import { plainToInstance } from 'class-transformer';
 import type { IMarcaRepository } from './repositories/marca.repository.interface';
 import { PaginacionMarcaDto } from './dto/paginacion-marca.dto';
+import { MarcaValidator } from './validators/marca.validator';
 
 
 @Injectable()
@@ -29,6 +30,7 @@ export class MarcaService {
   constructor(
     @Inject('IMarcaRepository')
     private readonly marcaRepository: IMarcaRepository,
+    private readonly marcaValidator: MarcaValidator,
   ) {}
 
 
@@ -52,12 +54,9 @@ export class MarcaService {
   
   async findOne(id: number): Promise<MostrarMarcaCompletaDto> {
     this.logger.log(`Buscando la marca ID:${id}`)
-    const marca = await this.marcaRepository.findOne(id);
-    if (!marca) {
-      this.logger.error(`No se encontró la marca con ID ${id}`)   //Usamos .error en lugar de .log
-      throw new NotFoundException(`No se encontró la marca con ID ${id}`);
-    }
-
+    
+    const marca = await this.marcaValidator.validarExistencia(id);
+    
     this.logger.debug(`Marca ${marca?.nombre} encontrada`)
     
     return plainToInstance(MostrarMarcaCompletaDto, marca, {
@@ -77,8 +76,6 @@ export class MarcaService {
 
     return {
       total,
-      pag,
-      mostrar,
       data: plainToInstance(MostrarMarcaCompletaDto, marcas, {
         excludeExtraneousValues: true,
       }),
@@ -89,6 +86,7 @@ export class MarcaService {
   //Ver los soft deletes y los que siguen activos
   async verSoftDeletes(): Promise<MostrarNombreMarcaDto[]> {
     this.logger.log("Buscando las marcas soft-deleted...");
+
     const marcas = await this.marcaRepository.findSoftDeleted()
 
     return plainToInstance(MostrarNombreMarcaDto, marcas, {
@@ -109,16 +107,16 @@ export class MarcaService {
   front no necesita eso. Armamos un DTO acorde a lo que queremos mostrar. 
   */
   async crearMarca(createMarcaDto: CreateMarcaDto): Promise<MostrarMarcaCompletaDto> {
+    
     this.logger.log(`Creando marca: ${createMarcaDto.nombre}`);
 
-    //Si la marca ya existe, no la creamos. El código después de la Exception NO se ejecuta.
-    const existente = await this.marcaRepository.findByNombreInsensitive(createMarcaDto.nombre);
-    if (existente) {
-      throw new BadRequestException(`Ya existe una marca con el nombre ${createMarcaDto.nombre} (case insensitive).`);
-    }
+    //Si la marca ya existe, no la creamos. Si salta la exception el resto del código NO se ejecuta.
+    await this.marcaValidator.validarNombreUnico(createMarcaDto.nombre);
 
+    //Creamos la marga
     const marcaCreada = await this.marcaRepository.create(createMarcaDto);
 
+    //Devolvemos la marca creada, siguiendo el DTO de marca (así no devolvemos la entidad completa)
     return plainToInstance(MostrarMarcaCompletaDto, marcaCreada, { excludeExtraneousValues: true });
   }
 
@@ -132,14 +130,10 @@ export class MarcaService {
     //Si en efecto están actualizando el nombre, chequeamos que no se repita. dto.nombre puede ser
     //undefined, asique en ese caso no haríamos este chequeo.
     if (updateMarcaDto.nombre) {
-      const marcaExistente = await this.marcaRepository.findByNombreInsensitive(updateMarcaDto.nombre);
-      
-      //Podemos encontrar el nombre repetido si somos nosotros mismos (misma id), este caso sería ok.
-      if (marcaExistente && marcaExistente.id !== id) {
-        throw new BadRequestException(`Ya existe una marca con el nombre ${updateMarcaDto.nombre} (case insensitive).`);
-        }
+      await this.marcaValidator.validarNombreUnico(updateMarcaDto.nombre, id);
     }
     
+    //Si no se disparó el exception con el validator el código sigue ejecutandose. Actualizamos
     const marcaActualizada = this.marcaRepository.update(id, updateMarcaDto)  //No hace falta el await, porque es lo último que hacemos.
     this.logger.log(`Marca actualizada: ID ${id}, nuevo nombre: ${(await marcaActualizada).nombre}, nueva descripción: ${(await marcaActualizada).descripcion}`);
 
@@ -152,36 +146,27 @@ export class MarcaService {
   //Soft-delete
   async softDeleteMarca(id:number) {
     //Buscamos si la id existe.
-    const marcaOriginal = await this.marcaRepository.findOne(id);
-
-    if (!marcaOriginal) {
-    this.logger.warn(`No se encontró la marca con ID ${id} para eliminar.`);
-    throw new NotFoundException(`No se encontró la marca con ID ${id}.`);
-    }
+    const marca = await this.marcaValidator.validarExistencia(id);
     
-    //Si existe, la "escondemos". 
+    //Si existe, procedemos a hacer el soft-delete y notificarlo.
     await this.marcaRepository.softDelete(id)
-    this.logger.log(`Marca ${marcaOriginal.nombre} eliminada permanentemente.`)
-    return { message: `Marca ${marcaOriginal.nombre} eliminada permanentemente.` };
+    this.logger.log(`Marca ${marca.nombre} eliminada permanentemente.`)
+    return { message: `Marca ${marca.nombre} eliminada permanentemente.` };
     }
 
 
   //Recuperar un soft delete
   async restaurarMarca(id: number) {
-    // Buscar todas las marcas, eliminadas o no.
-    const marca = await this.marcaRepository.findOneWithDeleted(id)
+    // Buscar todas las marcas, soft-deleteds o no. Error: La marca directamente no existe.
+    const marca = await this.marcaValidator.validarExistenciaConSoftDeleted(id);
 
-    if (!marca) {
-      this.logger.log(`No existe una marca con ID ${id}`)
-      throw new NotFoundException(`No existe una marca con ID ${id}`);
-    }
+    //Si se encontró la marca, tenemos que validar si está soft-deleted (sino, no hay nada que restaurar)
+    await this.marcaValidator.validarMarcaEstaSoftDeleted(marca);
 
-    if (!marca.deletedAt) {
-      this.logger.log(`La marca con ID ${id} no está eliminada.`)
-      throw new BadRequestException(`La marca con ID ${id} no está eliminada.`);
-    }
-
+    //Si no saltó ninguna exception, el código sigue su ejecución. Restauramos el soft-delete
     await this.marcaRepository.restore(id);
+
+    //Notificamos lo realizado
     this.logger.log(`Marca ${marca.nombre} restaurada correctamente.`)
     return { message: `Marca ${marca.nombre} restaurada correctamente.` };
   }

@@ -4,6 +4,7 @@ import { Marca } from './marca.entity';
 import { MarcaController } from './marca.controller';
 import { MarcaService } from './marca.service';
 import { MarcaRepository } from './repositories/marca.repository';
+import { MarcaValidator } from './validators/marca.validator';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { MarcaRepository } from './repositories/marca.repository';
     {
       provide: 'IMarcaRepository',  // Archivo <repositories/marca.repository.interface.ts>
       useClass: MarcaRepository     // Archivo <repositories/marca.repository.ts>
-    }, 
+    },
+    MarcaValidator,
   ]
 })
 export class MarcaModule {}
